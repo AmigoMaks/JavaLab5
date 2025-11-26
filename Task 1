@@ -1,0 +1,216 @@
+import java.io.*;
+import java.util.*;
+
+abstract class Currency {
+    protected double amount;
+
+    public Currency(double amount) {
+        this.amount = amount;
+    }
+
+    public abstract double toUAH();
+
+    public abstract String toFileString();
+
+    public double getAmount() {
+        return amount;
+    }
+
+    @Override
+    public String toString() {
+        return "Amount: " + amount;
+    }
+}
+
+class Dollar extends Currency implements Comparable<Dollar> {
+    private static final double RATE_TO_UAH = 42.0;
+
+    public Dollar(double amount) {
+        super(amount);
+    }
+
+    @Override
+    public double toUAH() {
+        return amount * RATE_TO_UAH;
+    }
+
+    @Override
+    public String toFileString() {
+        return "Dollar," + amount;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("Dollar: %.2f (%.2f UAH)", amount, toUAH());
+    }
+
+    @Override
+    public int compareTo(Dollar other) {
+        return Double.compare(this.amount, other.amount);
+    }
+}
+
+class Euro extends Currency implements Comparable<Euro> {
+    private static final double RATE_TO_UAH = 45.0;
+
+    public Euro(double amount) {
+        super(amount);
+    }
+
+    @Override
+    public double toUAH() {
+        return amount * RATE_TO_UAH;
+    }
+
+    @Override
+    public String toFileString() {
+        return "Euro," + amount;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("Euro:   %.2f (%.2f UAH)", amount, toUAH());
+    }
+
+    @Override
+    public int compareTo(Euro other) {
+        return Double.compare(this.amount, other.amount);
+    }
+}
+
+class CurrencyValueComparator implements Comparator<Currency> {
+    @Override
+    public int compare(Currency c1, Currency c2) {
+        return Double.compare(c1.toUAH(), c2.toUAH());
+    }
+}
+
+public class CurrencyManager {
+
+    private static final String DOLLAR_FILE = "dollars.txt";
+    private static final String EURO_FILE = "euros.txt";
+    private static final String OUTPUT_FILE = "sorted_all.txt";
+
+    public static void main(String[] args) {
+        createSampleFiles();
+
+        Scanner scanner = new Scanner(System.in);
+        scanner.useLocale(Locale.US); 
+
+        ArrayList<Dollar> dollarList = new ArrayList<>();
+        ArrayList<Euro> euroList = new ArrayList<>();
+
+        try {
+            System.out.println("  1. Reading Data");
+            readDollars(DOLLAR_FILE, dollarList);
+            readEuros(EURO_FILE, euroList);
+            
+            printList(dollarList);
+            printList(euroList);
+
+            System.out.println("\n  2. Sorting Individual Lists");
+            Collections.sort(dollarList);
+            Collections.sort(euroList);
+            
+            printList(dollarList);
+            printList(euroList);
+
+            System.out.println("\n  3. Enter new data");
+            System.out.print("Enter amount for new Dollar: ");
+            if (scanner.hasNextDouble()) {
+                dollarList.add(new Dollar(scanner.nextDouble()));
+            }
+
+            System.out.print("Enter amount for new Euro: ");
+            if (scanner.hasNextDouble()) {
+                euroList.add(new Euro(scanner.nextDouble()));
+            }
+
+            System.out.println("\n  4. Re-sorting after input");
+            Collections.sort(dollarList);
+            Collections.sort(euroList);
+            printList(dollarList);
+            printList(euroList);
+
+            System.out.println("\n  5. Merging and Sorting");
+            ArrayList<Currency> allCurrencies = new ArrayList<>();
+            allCurrencies.addAll(dollarList);
+            allCurrencies.addAll(euroList);
+
+            Collections.sort(allCurrencies, new CurrencyValueComparator());
+
+            for (Currency c : allCurrencies) {
+                System.out.println(c);
+            }
+
+            System.out.println("\n  6. Writing result to " + OUTPUT_FILE);
+            writeToFile(OUTPUT_FILE, allCurrencies);
+
+        } catch (IOException e) {
+            System.err.println("File Error: " + e.getMessage());
+        } finally {
+            scanner.close();
+        }
+    }
+
+
+    private static void readDollars(String filename, ArrayList<Dollar> list) throws IOException {
+        BufferedReader reader = new BufferedReader(new FileReader(filename));
+        String line;
+        while ((line = reader.readLine()) != null) {
+            String[] parts = line.split(",");
+            if (parts.length == 2) {
+                list.add(new Dollar(Double.parseDouble(parts[1])));
+            }
+        }
+        reader.close();
+    }
+
+    private static void readEuros(String filename, ArrayList<Euro> list) throws IOException {
+        BufferedReader reader = new BufferedReader(new FileReader(filename));
+        String line;
+        while ((line = reader.readLine()) != null) {
+            String[] parts = line.split(",");
+            if (parts.length == 2) {
+                list.add(new Euro(Double.parseDouble(parts[1])));
+            }
+        }
+        reader.close();
+    }
+
+    private static void writeToFile(String filename, ArrayList<Currency> list) throws IOException {
+        BufferedWriter writer = new BufferedWriter(new FileWriter(filename));
+        for (Currency c : list) {
+            writer.write(c.toString());
+            writer.newLine();
+        }
+        writer.close();
+    }
+
+    private static void printList(ArrayList<? extends Currency> list) {
+        if (list.isEmpty()) return;
+        System.out.println("List (" + list.get(0).getClass().getSimpleName() + "):");
+        for (Currency c : list) {
+            System.out.println("  " + c);
+        }
+    }
+
+    private static void createSampleFiles() {
+        try {
+            File f1 = new File(DOLLAR_FILE);
+            if (!f1.exists()) {
+                FileWriter fw = new FileWriter(f1);
+                fw.write("Dollar,100.0\nDollar,50.0\nDollar,200.0");
+                fw.close();
+            }
+            File f2 = new File(EURO_FILE);
+            if (!f2.exists()) {
+                FileWriter fw = new FileWriter(f2);
+                fw.write("Euro,80.0\nEuro,10.0\nEuro,500.0");
+                fw.close();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
