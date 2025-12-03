@@ -95,7 +95,6 @@ public class CurrencyManager {
         createSampleFiles();
 
         Scanner scanner = new Scanner(System.in);
-        scanner.useLocale(Locale.US); 
 
         ArrayList<Dollar> dollarList = new ArrayList<>();
         ArrayList<Euro> euroList = new ArrayList<>();
